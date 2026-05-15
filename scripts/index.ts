@@ -1,12 +1,6 @@
 import { join } from 'node:path';
-import {
-  fetchLatestCommitSha,
-  fetchDocMarkdown,
-  cacheRawDoc,
-  DOC_PAGES,
-} from '../src/indexer/fetch.js';
-import { parsePage } from '../src/indexer/parse.js';
-import { writePageIndex, writeMeta } from '../src/indexer/store.js';
+import { fetchLatestCommitSha, DOC_PAGES } from '../src/indexer/fetch.js';
+import { runIndexPipeline } from '../src/indexer/pipeline.js';
 
 const DATA_DIR = join(process.cwd(), 'data');
 
@@ -15,24 +9,8 @@ async function main() {
   const sha = await fetchLatestCommitSha();
   console.log(`SHA: ${sha ?? 'unavailable (continuing anyway)'}`);
 
-  const rawDir = join(DATA_DIR, 'raw');
-  let totalSections = 0;
-
-  for (const page of DOC_PAGES) {
-    process.stdout.write(`Fetching ${page}.md... `);
-    const markdown = await fetchDocMarkdown(page);
-    await cacheRawDoc(rawDir, page, markdown);
-
-    const sections = parsePage(page, markdown);
-    await writePageIndex(DATA_DIR, page, sections);
-    totalSections += sections.length;
-    console.log(`${sections.length} sections`);
-  }
-
-  await writeMeta(DATA_DIR, {
-    lastCommitSha: sha ?? 'unknown',
-    lastIndexedAt: new Date().toISOString(),
-  });
+  console.log(`Fetching and indexing ${DOC_PAGES.length} pages in parallel...`);
+  const { totalSections } = await runIndexPipeline(DATA_DIR, sha);
 
   console.log(`\nDone! ${totalSections} sections across ${DOC_PAGES.length} pages.`);
 }

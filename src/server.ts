@@ -1,14 +1,9 @@
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { join } from 'node:path';
-import {
-  fetchLatestCommitSha,
-  fetchDocMarkdown,
-  cacheRawDoc,
-  DOC_PAGES,
-} from './indexer/fetch.js';
-import { parsePage } from './indexer/parse.js';
-import { readMeta, writeMeta, writePageIndex, readAllIndexes } from './indexer/store.js';
+import { fetchLatestCommitSha } from './indexer/fetch.js';
+import { readMeta, readAllIndexes } from './indexer/store.js';
+import { runIndexPipeline } from './indexer/pipeline.js';
 import { SearchEngine } from './search/engine.js';
 import { registerLookupTool } from './tools/lookup.js';
 import { registerSearchTool } from './tools/search.js';
@@ -17,21 +12,6 @@ import { registerGetTool } from './tools/get.js';
 import { registerReindexTool } from './tools/reindex.js';
 
 const DATA_DIR = join(process.cwd(), 'data');
-
-async function runIndexer(sha: string): Promise<void> {
-  const rawDir = join(DATA_DIR, 'raw');
-  for (const page of DOC_PAGES) {
-    const markdown = await fetchDocMarkdown(page);
-    await cacheRawDoc(rawDir, page, markdown);
-    const sections = parsePage(page, markdown);
-    await writePageIndex(DATA_DIR, page, sections);
-    console.error(`[odin-mcp] Indexed ${sections.length} sections from ${page}`);
-  }
-  await writeMeta(DATA_DIR, {
-    lastCommitSha: sha,
-    lastIndexedAt: new Date().toISOString(),
-  });
-}
 
 async function loadOrBuildIndex(): Promise<SearchEngine> {
   const cachedSections = await readAllIndexes(DATA_DIR);
@@ -50,9 +30,8 @@ async function loadOrBuildIndex(): Promise<SearchEngine> {
     console.error(
       meta ? '[odin-mcp] Docs updated, re-indexing...' : '[odin-mcp] No index found, building...'
     );
-    await runIndexer(sha);
-    const freshSections = await readAllIndexes(DATA_DIR);
-    return new SearchEngine(freshSections);
+    const { sections } = await runIndexPipeline(DATA_DIR, sha);
+    return new SearchEngine(sections);
   }
 
   if (cachedSections.length === 0) {
