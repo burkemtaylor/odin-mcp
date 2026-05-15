@@ -8,6 +8,7 @@ export function registerGetTool(
 ): void {
   server.tool(
     'odin-get-section',
+    'Fetch a specific doc section by its exact ID (e.g. "overview/variable-declarations"). Use after odin-search or odin-list-sections to retrieve full content.',
     {
       id: z.string().describe('Section ID (e.g. "overview/variable-declarations")'),
     },

@@ -31,9 +31,10 @@ export class SearchEngine {
 
   search(query: string, options: { limit?: number; page?: string } = {}): DocSection[] {
     const { limit = 10, page } = options;
-    const results = this.miniSearch.search(query);
-    const filtered = page ? results.filter((r) => r['page'] === page) : results;
-    return filtered.slice(0, limit).map((r) => ({
+    const results = this.miniSearch.search(query, {
+      filter: page ? (result) => result['page'] === page : undefined,
+    });
+    return results.slice(0, limit).map((r) => ({
       id: r['id'] as string,
       page: r['page'] as string,
       title: r['title'] as string,

@@ -1,5 +1,6 @@
 import { z } from 'zod';
 import type { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
+import { DOC_PAGES } from '../indexer/fetch.js';
 import type { SearchEngine } from '../search/engine.js';
 
 export function registerListTool(
@@ -8,8 +9,9 @@ export function registerListTool(
 ): void {
   server.tool(
     'odin-list-sections',
+    'List all indexed doc sections with their IDs. Use to discover section IDs for odin-get-section. Filter by page to narrow results.',
     {
-      page: z.string().optional().describe('Filter to a specific page (e.g. "overview", "faq")'),
+      page: z.enum(DOC_PAGES).optional().describe('Filter to a specific doc page'),
     },
     async ({ page }) => {
       const sections = engineRef.current.listSections(page);

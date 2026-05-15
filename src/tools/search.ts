@@ -8,6 +8,7 @@ export function registerSearchTool(
 ): void {
   server.tool(
     'odin-search',
+    'Full-text search across all Odin docs. Use for broad discovery when you do not know which doc page contains the answer. Returns title, content snippet, and URL.',
     {
       query: z.string().describe('Full-text search query'),
       limit: z.number().optional().describe('Max results (default 10)'),
